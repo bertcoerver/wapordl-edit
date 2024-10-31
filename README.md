@@ -4,9 +4,6 @@ Clone of the original wapordl repo with zonal statistics functionality added
 
 ## IMPORTANT: THIS IS A COPY OF THE REPO MADE BY BERT COEVER OF FAO: https://bitbucket.org/cioapps/wapordl/ 
 
-
-[![HitCount](https://hits.dwyl.com/operations@eleafcom/eLEAF-Github/wapordl-edit.svg?style=flat-square)](http://hits.dwyl.com/operations@eleafcom/eLEAF-Github/wapordl-edit) 
-
 --------------
 
 ## WaPORDL
@@ -30,6 +27,8 @@ please see the notebook: *tutorial\wapor_zonalstats.ipynb* for details
 Again all credits go to Bert Coever and the FAO for building a great package. This repo thus builds on the work of Bert Coever and the FAO.
 
 If you do not need zonal statistics I reccomend utilising the original wapordl repo via conda as it is a much easier install
+
+[![HitCount](https://hits.dwyl.com/operations@eleafcom/eLEAF-Github/wapordl-edit.svg?style=flat-square)](http://hits.dwyl.com/operations@eleafcom/eLEAF-Github/wapordl-edit) 
 
 ## Authors and acknowledgment
 Development: Eleaf and Roeland de Koning
