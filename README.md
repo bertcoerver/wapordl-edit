@@ -2,13 +2,13 @@
 
 Clone of the original wapordl repo with zonal statistics functionality added
 
-# IMPORTANT: THIS IS A COPY OF THE REPO MADE BY BERT COEVER OF FAO: https://bitbucket.org/cioapps/wapordl/ 
+## IMPORTANT: THIS IS A COPY OF THE REPO MADE BY BERT COEVER OF FAO: https://bitbucket.org/cioapps/wapordl/ 
 
 --------------
 
-# WaPORDL
+## WaPORDL
 
-Oringal wapordl description: Download data from the WaPOR3 dataset as spatially aggregated timeseries or as spatial data clipped to a bounding-box or shapefile.
+Original wapordl description: Download data from the WaPOR3 dataset as spatially aggregated timeseries or as spatial data clipped to a bounding-box or shapefile.
 
 --------------
 
@@ -16,7 +16,7 @@ wapordl is a great little package that provides easy access to wapor v3 data via
 
 It can be accessed via the link below as well as directly (and much mor easily) via conda or pip:
 
-    *conda install  -c conda-forge wapordl*
+    conda install  -c conda-forge wapordl
 
 If your interested in carrying out zonal statistics (calculating field based statistics) you can clone or download this repo to get access to that functionality as well.
 
