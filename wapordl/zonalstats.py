@@ -40,7 +40,9 @@ def retrieve_wapor_zonal_stats_as_dataframe(
     _id: str,
     calculations: list[str] = ["mean", "std", "maximum", "minimum"],
 ) -> pd.DataFrame:
-    _dates = get_end_dates_from_bands(extraction_tiff)
+
+    with gdal.Open(extraction_tiff, gdalconst.GA_ReadOnly) as temp_data:
+        _dates = get_end_dates_from_bands(temp_data)
     zonal_stats_values = time_series_extraction_polygon(
         extraction_tiff=extraction_tiff, polygons=polygons, calculations=calculations
     )
@@ -257,11 +259,18 @@ def extract_polygon_weighted_zonal_stats_series_from_raster_stack(
             stack_data[stack_data < lower_limit] = np.nan
 
         nodata_value = stack_dataset.GetRasterBand(1).GetNoDataValue()
+
         if nodata_value is None:
             raise AssertionError(
                 "nodata value not detected in the raster, neccescary for correct masking"
             )
         stack_data[stack_data == nodata_value] = np.nan
+
+        scales, offsets = get_dataset_scale_and_offset(_dataset=stack_dataset)
+
+        stack_data = stack_data * np.array(scales).reshape(len(scales), 1, 1) + np.array(
+            offsets
+        ).reshape(len(offsets), 1, 1)
 
         mask = np.isnan(stack_data)
         stack_data = np.ma.masked_array(stack_data, mask=mask)
@@ -630,38 +639,65 @@ def vector_file_to_dict(vector_file_path: str, column: str = "") -> dict[str, og
 
 
 #################################
-def get_end_dates_from_bands(gdal_file_path):
+def get_end_dates_from_bands(_dataset: gdal.Dataset):
     """
     Get the 'end_date' metadata variable from each band in a GDAL raster dataset.
 
     Parameters
     ----------
-    gdal_file_path : str
-        Path to the GDAL raster file.
+    _dataset : gdal.Dataset
+        gdal dataset object.
 
     Returns
     -------
     list
-        A list of 'end_date' values corresponding to each band in the dataset.
+        A list of 'end_date' values order corresponding to each band in the dataset.
     """
-    # Open the GDAL dataset
-    dataset = gdal.Open(gdal_file_path)
-
-    # Check if the dataset was opened successfully
-    if not dataset:
-        raise FileNotFoundError(f"Could not open file: {gdal_file_path}")
-
     # Initialize list to store end_date values
     end_dates = []
 
     # Iterate through each band in the dataset
-    for band_index in range(dataset.RasterCount):
-        band = dataset.GetRasterBand(band_index + 1)  # GDAL band index is 1-based
+    for band_index in range(_dataset.RasterCount):
+        band = _dataset.GetRasterBand(band_index + 1)  # GDAL band index is 1-based
         metadata = band.GetMetadata()
         end_date = metadata.get("end_date", None)
         end_dates.append(end_date)
 
     return end_dates
+
+
+#################################
+def get_dataset_scale_and_offset(_dataset: gdal.Dataset):
+    """
+    Get the scale and offset from each band in a GDAL raster dataset if applicable.
+
+    Parameters
+    ----------
+    _dataset : gdal.Dataset
+        gdal dataset object.
+
+    Returns
+    -------
+    tuple[list, list]
+        A tuple of saclaes and offsets lists order corresponding to each band in the dataset.
+    """
+    # Initialize list to store end_date values
+    scales = []
+    offsets = []
+
+    # Iterate through each band in the dataset
+    for band_index in range(_dataset.RasterCount):
+        band = _dataset.GetRasterBand(band_index + 1)  # GDAL band index is 1-based
+        _scale = band.GetScale()
+        if not _scale:
+            _scale = 1.0
+        scales.append(_scale)
+        _offset = band.GetOffset()
+        if not _offset:
+            _offset = 0.0
+        offsets.append(_offset)
+
+    return scales, offsets
 
 
 #################################
@@ -691,6 +727,7 @@ def detect_ogr_type(series):
         return ogr.OFTString  # Default to string for other types
 
 
+#################################
 def output_df_and_geometries_to_gpkg(
     vector_file_path: str,
     df: pd.DataFrame,
