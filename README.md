@@ -4,6 +4,9 @@ Clone of the original wapordl repo with zonal statistics functionality added
 
 ## IMPORTANT: THIS IS A COPY OF THE REPO MADE BY BERT COEVER OF FAO: https://bitbucket.org/cioapps/wapordl/ 
 
+
+[![HitCount](https://hits.dwyl.com/operations@eleafcom/eLEAF-Github/wapordl-edit.svg?style=flat-square)](http://hits.dwyl.com/operations@eleafcom/eLEAF-Github/wapordl-edit) 
+
 --------------
 
 ## WaPORDL
