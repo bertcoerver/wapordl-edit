@@ -1,0 +1,13 @@
+name: wapor_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.9
+  - requests
+  - pandas>=2.1.0,<3
+  - numpy>=1.15,<2
+  - gdal>=3.4.0,<4
+  - shapely>=2.0.0
+  - tqdm
+  - pydantic>=2
