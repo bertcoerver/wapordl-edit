@@ -36,3 +36,11 @@ Original Code: FAO and Bert Coever
 
 ## License
 open source
+
+
+## Release Notes
+
+#### 0.1 2024/10/31
+
+    - bug fix unscale and unoffset missing from wapor_zonal process, added in. As long as it is inbedded in the gdla metadata data is unscaled before carrying out zonal statistics process
+    - started adding release notes
