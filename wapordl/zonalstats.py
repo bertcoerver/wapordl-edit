@@ -417,7 +417,7 @@ def calculate_large_polygon_weight_array(
     cell_area = x_res * abs(y_res)
 
     # Create a buffered version of the target polygon
-    buffer_distance = 1.5 * max(x_res, abs(y_res))
+    buffer_distance = 2.5 * max(x_res, abs(y_res))
     buffered_polygon = target_polygon.Buffer(-buffer_distance)
 
     # Rasterize both original and buffered polygons
