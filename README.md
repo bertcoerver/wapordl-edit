@@ -44,3 +44,6 @@ open source
 
     - bug fix unscale and unoffset missing from wapor_zonal process, added in. As long as it is inbedded in the gdla metadata data is unscaled before carrying out zonal statistics process
     - started adding release notes
+
+##### 0.1 2024/11/25
+    - speed up zonal stats for large polygons (large number of cells)
