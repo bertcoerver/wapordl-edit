@@ -250,7 +250,7 @@ def extract_polygon_weighted_zonal_stats_series_from_raster_stack(
 
         __, rows, cols = stack_data.shape
 
-        weight_array = calculate_polygon_weights(
+        weight_array = calculate_polygon_weight_array(
             array_bbox=array_coord_bbox, target_polygon=polygon, num_rows=rows, num_cols=cols
         )
 
@@ -319,7 +319,7 @@ def extract_polygon_weighted_zonal_stats_series_from_raster_stack(
 
 
 ####################################
-def calculate_polygon_weights(
+def calculate_small_polygon_weight_array(
     array_bbox: tuple[float, float, float, float],
     target_polygon: ogr.Geometry,
     num_rows: int,
@@ -327,7 +327,7 @@ def calculate_polygon_weights(
 ):
     """
     Calculate weights for each cell in an array based on the overlap of each cell with the
-    target rectangle (bounding box).
+    target polygon.
 
     Parameters:
         array_bbox (tuple[float, float, float, float]): Coordinates of the array bounding box
@@ -376,6 +376,155 @@ def calculate_polygon_weights(
 
             # Calculate weight for the cell
             weights[i, j] = cell_weight
+
+    return weights
+
+
+####################################
+def calculate_large_polygon_weight_array(
+    array_bbox: tuple[float, float, float, float],
+    target_polygon: ogr.Geometry,
+    num_rows: int,
+    num_cols: int,
+):
+    """
+    Calculate weights for each cell in an array based on the overlap of each cell with the
+    target polygon.
+
+    uses a method more effecient for large poylgons (in total cells)
+
+    Parameters:
+        array_bbox (tuple[float, float, float, float]): Coordinates of the array bounding box
+        in the format (xmin_arr, ymin_arr, xmax_arr, ymax_arr).
+        target_polygon (ogr.Geometry): ogr polygon geometry
+        num_rows (int): Number of rows in the array.
+        num_cols (int): Number of columns in the array.
+
+    Returns:
+        np.ndarray: Array of weights for each cell in the array.
+    """
+    # Extract bounding box coordinates
+    xmin_arr, ymin_arr, xmax_arr, ymax_arr = array_bbox
+
+    # Calculate resolution
+    x_res = (xmax_arr - xmin_arr) / num_cols
+    y_res = (ymin_arr - ymax_arr) / num_rows
+
+    # Initialize weights array
+    weights = np.zeros((num_rows, num_cols))
+
+    # Calculate cell area
+    cell_area = x_res * abs(y_res)
+
+    # Create a buffered version of the target polygon
+    buffer_distance = 1.5 * max(x_res, abs(y_res))
+    buffered_polygon = target_polygon.Buffer(-buffer_distance)
+
+    # Rasterize both original and buffered polygons
+    def polygon_to_array(
+        polygon: ogr.Geometry,
+        bbox: tuple[float, float, float, float],
+        res: tuple[float, float],
+        rows: int,
+        cols: int,
+    ):
+        mem_raster = gdal.GetDriverByName("MEM").Create("", cols, rows, 1, gdal.GDT_Byte)
+        mem_raster.SetGeoTransform((bbox[0], res[0], 0, bbox[3], 0, res[1]))
+        band = mem_raster.GetRasterBand(1)
+        band.Fill(0)
+
+        # Create a memory OGR datasource and add the geometry as a layer
+        mem_ds = ogr.GetDriverByName("Memory").CreateDataSource("")
+        layer = mem_ds.CreateLayer("polygon_layer", geom_type=ogr.wkbPolygon)
+
+        # Create a feature and add the polygon to the layer
+        feature = ogr.Feature(layer.GetLayerDefn())
+        feature.SetGeometry(polygon)
+        layer.CreateFeature(feature)
+
+        gdal.RasterizeLayer(mem_raster, [1], layer, burn_values=[1], options=["ALL_TOUCHED=TRUE"])
+        return band.ReadAsArray()
+
+    # Original and buffered rasterized arrays
+    resolution = (x_res, y_res)
+    original_raster = polygon_to_array(target_polygon, array_bbox, resolution, num_rows, num_cols)
+    buffered_raster = polygon_to_array(buffered_polygon, array_bbox, resolution, num_rows, num_cols)
+
+    # Ensure weight array has the correct shape
+    if weights.shape != original_raster.shape:
+        raise ValueError("Shape mismatch between weight array and rasterized polygon array")
+
+    # Combined array to identify full and partial overlaps
+    combined_raster = original_raster + buffered_raster
+    weights[combined_raster == 2] = 1  # Full overlap cells
+
+    # Partial overlap cells (where combined_raster == 1)
+    partial_overlap_indices = np.argwhere(combined_raster == 1)
+
+    for i, j in partial_overlap_indices:
+        # Calculate cell coordinates
+        cell_xmin = xmin_arr + j * x_res
+        cell_xmax = xmin_arr + (j + 1) * x_res
+        cell_ymax = ymax_arr + i * y_res
+        cell_ymin = ymax_arr + (i + 1) * y_res
+
+        cell_geom = create_bbox_polygon(
+            minx=cell_xmin, miny=cell_ymin, maxx=cell_xmax, maxy=cell_ymax
+        )
+
+        # Calculate overlap area between cell and target_polygon
+        target_polygon_intersection = cell_geom.Intersection(target_polygon)
+
+        if target_polygon_intersection:
+            cell_weight = target_polygon_intersection.Area() / cell_area
+
+        else:
+            cell_weight = 0
+
+        # Calculate weight for the cell
+        weights[i, j] = cell_weight
+
+    return weights
+
+
+####################################
+def calculate_polygon_weight_array(
+    array_bbox: tuple[float, float, float, float],
+    target_polygon: ogr.Geometry,
+    num_rows: int,
+    num_cols: int,
+):
+    """
+    Calculate weights for each cell in an array based on the overlap of each cell with the
+    target polygon.
+
+    if the number of cells covered exceeds a certain amount uses a method more effecient for large (in total cells)
+    polygons
+
+    Parameters:
+        array_bbox (tuple[float, float, float, float]): Coordinates of the array bounding box
+        in the format (xmin_arr, ymin_arr, xmax_arr, ymax_arr).
+        target_polygon (ogr.Geometry): ogr polygon geometry
+        num_rows (int): Number of rows in the array.
+        num_cols (int): Number of columns in the array.
+
+    Returns:
+        np.ndarray: Array of weights for each cell in the array.
+    """
+    if num_cols * num_rows > 200:
+        weights = calculate_large_polygon_weight_array(
+            array_bbox=array_bbox,
+            target_polygon=target_polygon,
+            num_rows=num_rows,
+            num_cols=num_cols,
+        )
+    else:
+        weights = calculate_small_polygon_weight_array(
+            array_bbox=array_bbox,
+            target_polygon=target_polygon,
+            num_rows=num_rows,
+            num_cols=num_cols,
+        )
 
     return weights
 

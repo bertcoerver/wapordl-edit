@@ -1436,6 +1436,7 @@ def wapor_zonal(
                 unit_conversion=unit_conversion,
                 skip_if_exists=skip_if_exists,
             )
+            logging.info(f"{_variable} downloaded for {_period}, carrying out zonal statistics")
 
             product_df = retrieve_wapor_zonal_stats_as_dataframe(
                 extraction_tiff=fp,
