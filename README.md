@@ -18,9 +18,7 @@ It can be accessed via the link below as well as directly (and much mor easily) 
 
     conda install  -c conda-forge wapordl
 
-If your interested in carrying out zonal statistics (calculating field based statistics) you can clone or download this repo to get access to that functionality as well.
-
-please see the notebook: *tutorial\wapor_zonalstats.ipynb* for details
+If your interested in carrying out zonal statistics (calculating field based statistics) you can use wapordl for that as well (since version 1.1), check out its README and look for the `identifier` keyword example.
 
 --------------
 
